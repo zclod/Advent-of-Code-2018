@@ -4,14 +4,14 @@
 -- Standard input
 import           Protolude hiding (interact)
 import qualified Turtle as T
-import           Data.ByteString hiding (singleton)
+import qualified Data.ByteString as B
 import           Text.Parser.Token
+import           Text.Parser.Char
 import           Text.Trifecta
 
 --
 import           Data.Fold
 import           Data.Fold.L
-import           Data.IntSet
 
 difficulty = T.switch "hard" 'd' "diffuculty level"
 
@@ -24,34 +24,31 @@ hard i = show $ hardSolution <$> parseByteString hardParser mempty i
 main = do
     isHard <- T.options "Advent of Code 2018" difficulty
     if isHard then
-        interact hard
+        B.interact hard
     else
-        interact easy
+        B.interact easy
 
 --------------------------------------------------------------------
 
-easyParser = many (token integer)
-easySolution = sum
+easyParser = many (token (many letter))
+easySolution i = (\x y -> x*y) <$> (run i easyF)
 
-hardParser :: Parser [Int]
-hardParser = (fmap . fmap) fromIntegral easyParser
+easyStep :: Int -> Int -> [Char] -> Int
+easyStep repetitionN acc str = if isFound
+                                  then acc + 1
+                                  else acc
 
-hardSolution' :: Either Int (Int, IntSet) -> [Int] -> Either Int (Int, IntSet)
-hardSolution' t0 i = case run i (solutionFold t0) of
-                      Left result -> Left result
-                      Right s -> hardSolution' (Right s) i
+    where
+        filterlist = (\x -> (==x)) <$> str
+        charRepetitions = filter <$> filterlist <*> [str]
+        charNs = length <$> charRepetitions
+        isFound = repetitionN `elem` charNs
 
-hardSolution = hardSolution' (Right (0, mempty))
+threeLetters = L identity (easyStep 3) 0
+twoLetters = L identity (easyStep 3) 0
 
-shortCircuit :: (Int, IntSet) -> Either Int (Int, IntSet)
-shortCircuit (value, set)
-    | value `member` set = Left value
-    | otherwise          = Right (value, insert value set)
+easyF = (,) <$> twoLetters <*> threeLetters
 
 
-stepF :: Either Int (Int, IntSet) -> Int -> Either Int (Int, IntSet)
-stepF s v = do
-    (acc, set) <- s
-    shortCircuit (acc + v, set)
-
-solutionFold = L identity stepF 
+hardParser = undefined
+hardSolution = undefined
